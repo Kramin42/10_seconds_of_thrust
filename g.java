@@ -70,8 +70,8 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 	Color clrTextBlue = Color.blue;
 	Color clrBtnBG = new Color(0x8040FF00,true);
 	
-	double radEarth = 8;
-	double radMoon = 2;
+	double radEarth = 12;
+	double radMoon = 3;
 	double posEarthX = 400, posEarthY = 300;
 	double posMoonX = 400, posMoonY = 50;
 	
@@ -82,14 +82,22 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 	double gravityConst = 0.9;
 	
 	double radRocket = 1.5;
-	double posRocketX = 400, posRocketY = 300 - 20;
-	double velRocketX = Math.sqrt(4.5), velRocketY = 0;
+	double posRocketX = 400, posRocketY = 300 - 16;
+	double velRocketX = Math.sqrt(5.625), velRocketY = 0;
 	
 	double thrust = 0.01;
 	double time = 10;
 	
 	boolean reset = false;
 	boolean gameover = false;
+	boolean crashed = false;
+	boolean reachedMoon = false;
+	boolean reachedEarth = false;
+	
+	int nearMoonTime = 0;
+	int nearEarthTime = 0;
+	double radMoonOrbit = radMoon+2;
+	double radEarthOrbit = radEarth+8;
 	
 	//fire particles
 	ArrayList<Float> fpx = new ArrayList<Float>();
@@ -97,8 +105,9 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 	ArrayList<Float> fvx = new ArrayList<Float>();
 	ArrayList<Float> fvy = new ArrayList<Float>();
 	ArrayList<Float> falpha = new ArrayList<Float>();
-	float falphaMult = 0.92f;
+	float falphaMult = 0.96f;
 	float frandvMult = 0.2f;
+	int numParticles = 4;
 	float fv = 1.0f;
 	
 
@@ -143,13 +152,18 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 				posMoonY = 300 + 250*Math.cos(moonAngle);
 				velMoonX = -0.6*Math.cos(moonAngle);
 				velMoonY = 0.6*Math.sin(moonAngle);
-				posRocketX = 400 + 20*Math.sin(rocketAngle);
-				posRocketY = 300 + 20*Math.cos(rocketAngle);
-				velRocketX = -Math.sqrt(4.5)*Math.cos(rocketAngle);
-				velRocketY = Math.sqrt(4.5)*Math.sin(rocketAngle);
+				posRocketX = 400 + 16*Math.sin(rocketAngle);
+				posRocketY = 300 + 16*Math.cos(rocketAngle);
+				velRocketX = -Math.sqrt(5.625)*Math.cos(rocketAngle);
+				velRocketY = Math.sqrt(5.625)*Math.sin(rocketAngle);
 				time = 10;
 				reset = false;
 				gameover = false;
+				crashed = false;
+				reachedMoon = false;
+				reachedEarth = false;
+				nearMoonTime = 0;
+				nearEarthTime = 0;
 				fpx.clear();
 				fpy.clear();
 				fvx.clear();
@@ -159,7 +173,7 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 
 			//game update
 			
-			if (!gameover){
+			if (!crashed){
 				//update the fire particles
 				for (int i=0; i<fpx.size(); i++){
 					fpx.set(i, fpx.get(i)+fvx.get(i));
@@ -188,10 +202,11 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 				//update the rocket
 				double ERdist = Math.sqrt((posEarthX-posRocketX)*(posEarthX-posRocketX) + (posEarthY-posRocketY)*(posEarthY-posRocketY));
 				double MRdist = Math.sqrt((posMoonX-posRocketX)*(posMoonX-posRocketX) + (posMoonY-posRocketY)*(posMoonY-posRocketY));
+				//System.out.println(ERdist);
 				double accRocketEarthMag = -gravityConst*massEarth/(ERdist*ERdist);
 				double accRocketMoonMag = -gravityConst*massMoon/(MRdist*MRdist);
 				
-				double accThrusters = mouseDown && time > 0 ? thrust : 0;
+				double accThrusters = !gameover && mouseDown && time > 0 ? thrust : 0;
 				double mouseDist = Math.sqrt((mx-posRocketX)*(mx-posRocketX) + (my-posRocketY)*(my-posRocketY));
 				double accRocketX = accRocketEarthMag*(posRocketX-posEarthX)/ERdist + accRocketMoonMag*(posRocketX-posMoonX)/MRdist + accThrusters*(mx-posRocketX)/mouseDist;
 				double accRocketY = accRocketEarthMag*(posRocketY-posEarthY)/ERdist + accRocketMoonMag*(posRocketY-posMoonY)/MRdist + accThrusters*(my-posRocketY)/mouseDist;
@@ -201,18 +216,44 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 				posRocketX += velRocketX;
 				posRocketY += velRocketY;
 				
-				if (mouseDown && time > 0) {//create particles
-					fpx.add((float)posRocketX);
-					fpy.add((float)posRocketY);
-					fvx.add((float) (velRocketX+fv*(posRocketX-mx)/mouseDist+frandvMult*(rand.nextFloat()-0.5f)));
-					fvy.add((float) (velRocketY+fv*(posRocketY-my)/mouseDist+frandvMult*(rand.nextFloat()-0.5f)));
-					falpha.add(1.0f);
+				if (!gameover && mouseDown && time > 0) {//create particles
+					for (int i=0; i<numParticles; i++){
+						fpx.add((float)posRocketX);
+						fpy.add((float)posRocketY);
+						fvx.add((float) (velRocketX+fv*(posRocketX-mx)/mouseDist+frandvMult*(rand.nextFloat()-0.5f)));
+						fvy.add((float) (velRocketY+fv*(posRocketY-my)/mouseDist+frandvMult*(rand.nextFloat()-0.5f)));
+						falpha.add(1.0f);
+					}
 				}
 				
-				time -= mouseDown && time > 0 ? 1/60.0 : 0;
+				time -= !gameover && mouseDown && time > 0 ? 1/60.0 : 0;
+				
+				if (!reachedMoon){
+					if (MRdist<=radMoonOrbit){
+						nearMoonTime++;
+					} else {
+						nearMoonTime = 0;
+					}
+					if (nearMoonTime >= 600){
+						reachedMoon = true;
+						//System.out.println("reached Moon");
+					}
+				} else if (!reachedEarth){
+					if (ERdist<=radEarthOrbit){
+						nearEarthTime++;
+					} else {
+						nearEarthTime = 0;
+					}
+					if (nearEarthTime >= 600){
+						reachedEarth = true;
+						gameover = true;
+						//System.out.println("reached Earth");
+					}
+				}
 				
 				if (ERdist < radEarth || MRdist < radMoon){
 					gameover = true;
+					crashed = true;
 				}
 			}
 			
@@ -263,7 +304,6 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 			g2d.fill(new Ellipse2D.Float((float) (posRocketX-radRocket), (float) (posRocketY-radRocket), (float) (2*radRocket), (float) (2*radRocket)));
 			
 			//draw time and time bar
-			//g2d.drawString("FPS: "+fps, 0, 10);
 			fm   = g2d.getFontMetrics(mediumFont);
 			rect = fm.getStringBounds(df.format(time), g2d);
 			g2d.setFont(mediumFont);
@@ -277,7 +317,40 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 			g2d.fillRect(0, 0, (int) (w*time/10.0), (int) (rect.getHeight()));
 			g2d.setColor(clrText);
 			g2d.drawString(df.format(time), (int)(w/2 - rect.getWidth()/2), (int)(fm.getAscent()));
-
+			
+			//draw orbit progress
+			if (nearMoonTime>0){
+				g2d.setColor(clrMoon);
+				g2d.fillRect(0, h-10, (int) (nearMoonTime*w/600.0), 10);
+			}
+			if (nearEarthTime>0){
+				g2d.setColor(clrEarth);
+				g2d.fillRect(0, h-20, (int) (nearEarthTime*w/600.0), 10);
+			}
+			
+			//gameover message
+			if (gameover){
+				g2d.setColor(clrText);
+				if (crashed){
+					fm   = g2d.getFontMetrics(largeFont);
+					rect = fm.getStringBounds("You Crashed!", g2d);
+					g2d.setFont(largeFont);
+					g2d.drawString("You Crashed!", (int)(w/2 - rect.getWidth()/2), (int)(150));
+				} else {
+					fm   = g2d.getFontMetrics(largeFont);
+					rect = fm.getStringBounds("Success!", g2d);
+					g2d.setFont(largeFont);
+					g2d.drawString("Success!", (int)(w/2 - rect.getWidth()/2), (int)(150));
+				}
+				fm   = g2d.getFontMetrics(mediumFont);
+				rect = fm.getStringBounds("Press 'r' to play again", g2d);
+				g2d.setFont(mediumFont);
+				g2d.drawString("Press 'r' to play again", (int)(w/2 - rect.getWidth()/2), (int)(400));
+			}
+			
+			g2d.setFont(normalFont);
+			g2d.setColor(clrText);
+			g2d.drawString("FPS: "+fps, 0, 10);
 			// Draw the entire results on the screen.
 			appletGraphics.drawImage(screen, 0, 0, null);
 			
