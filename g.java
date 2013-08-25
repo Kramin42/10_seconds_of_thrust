@@ -2,8 +2,6 @@
  * Author: Cameron Dykstra
  * Email: kramin42@gmail.com
  * 
- * This is an implementation of the game Mancala in java
- * 
  * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY 
  * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
@@ -348,9 +346,9 @@ public class g extends Applet implements Runnable, KeyListener, MouseListener, M
 				g2d.drawString("Press 'r' to play again", (int)(w/2 - rect.getWidth()/2), (int)(400));
 			}
 			
-			g2d.setFont(normalFont);
-			g2d.setColor(clrText);
-			g2d.drawString("FPS: "+fps, 0, 10);
+			//g2d.setFont(normalFont);
+			//g2d.setColor(clrText);
+			//g2d.drawString("FPS: "+fps, 0, 10);
 			// Draw the entire results on the screen.
 			appletGraphics.drawImage(screen, 0, 0, null);
 			
